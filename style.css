@@ -17,6 +17,9 @@
   --gutter-bg: #11111b;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
   --row-height: 22px;
+  --sr-accent: #a6e3a1;
+  --sr-accent-dim: rgba(166, 227, 161, 0.15);
+  --sr-panel-width: 360px;
 }
 
 * {
@@ -191,6 +194,12 @@ main {
 #modifiedIndicator {
   color: var(--modified-color);
   font-weight: 600;
+}
+
+.editor-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
 }
 
 .editor-layout {
@@ -413,6 +422,329 @@ main {
   opacity: 0.85;
 }
 
+/* Shadowrun toolbar button */
+#srToggleBtn {
+  background: var(--sr-accent-dim);
+  color: var(--sr-accent);
+  border-color: var(--sr-accent);
+}
+
+#srToggleBtn:hover {
+  background: var(--sr-accent);
+  color: var(--bg-primary);
+}
+
+#srToggleBtn.sr-btn-active {
+  background: var(--sr-accent);
+  color: var(--bg-primary);
+  font-weight: 600;
+}
+
+/* Shadowrun Panel */
+.sr-panel {
+  width: var(--sr-panel-width);
+  min-width: var(--sr-panel-width);
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sr-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.sr-panel-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sr-accent);
+}
+
+.sr-close-btn,
+.sr-refresh-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.sr-close-btn:hover,
+.sr-refresh-btn:hover {
+  color: var(--text-primary);
+}
+
+.sr-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0;
+}
+
+.sr-panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sr-panel-content::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+.sr-panel-content::-webkit-scrollbar-thumb {
+  background: var(--bg-hover);
+  border-radius: 3px;
+}
+
+/* Section accordion */
+.sr-section {
+  border-bottom: 1px solid var(--border);
+}
+
+.sr-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  user-select: none;
+  transition: background 0.1s;
+}
+
+.sr-section-header:hover {
+  background: var(--bg-surface);
+}
+
+.sr-arrow {
+  font-size: 10px;
+  color: var(--text-muted);
+  width: 12px;
+  text-align: center;
+}
+
+.sr-section-body {
+  padding: 6px 12px 10px;
+}
+
+.sr-section-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.sr-subhead {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sr-accent);
+  margin-top: 8px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Field rows */
+.sr-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.sr-field label {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.sr-input {
+  width: 60px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: right;
+}
+
+.sr-input:focus {
+  outline: none;
+  border-color: var(--sr-accent);
+}
+
+.sr-input-wide {
+  width: 90px;
+}
+
+.sr-input::-webkit-inner-spin-button,
+.sr-input::-webkit-outer-spin-button {
+  opacity: 1;
+  height: 18px;
+}
+
+.sr-addr {
+  font-size: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: 70px;
+  text-align: right;
+}
+
+.sr-addr:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* Select dropdown */
+.sr-select {
+  width: 100%;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.sr-select:focus {
+  outline: none;
+  border-color: var(--sr-accent);
+}
+
+.sr-fields {
+  /* container for dynamic fields */
+}
+
+/* Hack toggle switches */
+.sr-hack-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+}
+
+.sr-hack-label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.sr-hack-name {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sr-toggle {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  min-width: 32px;
+  height: 18px;
+}
+
+.sr-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.sr-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: var(--bg-surface);
+  border-radius: 9px;
+  transition: background 0.2s;
+}
+
+.sr-toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.sr-toggle input:checked + .sr-toggle-slider {
+  background: var(--sr-accent-dim);
+}
+
+.sr-toggle input:checked + .sr-toggle-slider::before {
+  transform: translateX(14px);
+  background: var(--sr-accent);
+}
+
+/* Checksum section */
+.sr-checksum-val {
+  font-size: 12px;
+  color: var(--text-primary);
+  font-weight: 600;
+  min-width: 60px;
+}
+
+.sr-checksum-status {
+  font-size: 11px;
+  padding: 4px 0;
+  font-weight: 600;
+}
+
+.sr-checksum-status.sr-valid {
+  color: var(--sr-accent);
+}
+
+.sr-checksum-status.sr-invalid {
+  color: var(--modified-color);
+}
+
+.sr-btn-row {
+  padding-top: 6px;
+}
+
+.sr-btn {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  transition: background 0.15s;
+}
+
+.sr-btn:hover {
+  background: var(--bg-hover);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .ascii-view {
@@ -423,5 +755,16 @@ main {
   }
   .toolbar input[type="text"] {
     width: 100px;
+  }
+  .sr-panel {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 50;
+    box-shadow: -4px 0 12px rgba(0, 0, 0, 0.4);
+  }
+  .editor-body {
+    position: relative;
   }
 }

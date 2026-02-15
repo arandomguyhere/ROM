@@ -26,6 +26,8 @@
       <button id="searchNextBtn" disabled>Next</button>
       <span class="separator"></span>
       <button id="gotoBtn" disabled>Go to Offset</button>
+      <span class="separator" id="srSeparator" style="display:none"></span>
+      <button id="srToggleBtn" style="display:none">Shadowrun</button>
     </div>
   </header>
 
@@ -48,10 +50,13 @@
         <span id="modifiedIndicator" class="hidden">Modified</span>
       </div>
 
-      <div class="editor-layout">
-        <div class="offset-gutter" id="offsetGutter"></div>
-        <div class="hex-view" id="hexView" tabindex="0"></div>
-        <div class="ascii-view" id="asciiView"></div>
+      <div class="editor-body">
+        <div class="editor-layout">
+          <div class="offset-gutter" id="offsetGutter"></div>
+          <div class="hex-view" id="hexView" tabindex="0"></div>
+          <div class="ascii-view" id="asciiView"></div>
+        </div>
+        <div id="shadowrunPanel" class="sr-panel hidden"></div>
       </div>
 
       <div class="scrollbar-container">
@@ -80,5 +85,6 @@
   </div>
 
   <script src="editor.js"></script>
+  <script src="shadowrun.js"></script>
 </body>
 </html>
