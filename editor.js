@@ -16,6 +16,10 @@
   let searchMatches = [];
   let searchIndex = -1;
 
+  // Plugin callback hooks
+  let onFileLoadedCallbacks = [];
+  let onBeforeSaveCallbacks = [];
+
   // Undo/redo
   let undoStack = [];
   let redoStack = [];
@@ -100,6 +104,11 @@
     updateUndoRedoButtons();
 
     hexView.focus();
+
+    // Notify plugins
+    for (let i = 0; i < onFileLoadedCallbacks.length; i++) {
+      onFileLoadedCallbacks[i](romData);
+    }
   }
 
   function formatSize(bytes) {
@@ -111,6 +120,10 @@
   // --- Save ---
   function saveFile() {
     if (!romData) return;
+    // Notify plugins before save
+    for (let i = 0; i < onBeforeSaveCallbacks.length; i++) {
+      onBeforeSaveCallbacks[i](romData);
+    }
     const blob = new Blob([romData], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -715,4 +728,57 @@
     };
     reader.readAsArrayBuffer(file);
   });
+
+  // --- Plugin API ---
+  window.RomEditor = {
+    onFileLoaded: function (cb) { onFileLoadedCallbacks.push(cb); },
+    onBeforeSave: function (cb) { onBeforeSaveCallbacks.push(cb); },
+    getData: function () { return romData; },
+    getFileName: function () { return fileName; },
+    readUint8: function (offset) {
+      return romData ? romData[offset] : 0;
+    },
+    readUint16: function (offset) {
+      if (!romData) return 0;
+      return (romData[offset] << 8) | romData[offset + 1];
+    },
+    readUint32: function (offset) {
+      if (!romData) return 0;
+      return ((romData[offset] << 24) | (romData[offset + 1] << 16) |
+              (romData[offset + 2] << 8) | romData[offset + 3]) >>> 0;
+    },
+    writeByte: function (offset, value) {
+      if (!romData || offset < 0 || offset >= romData.length) return;
+      var old = romData[offset];
+      if (old === value) return;
+      pushUndo(offset, old, value);
+      romData[offset] = value;
+    },
+    writeUint16: function (offset, value) {
+      this.writeByte(offset, (value >> 8) & 0xFF);
+      this.writeByte(offset + 1, value & 0xFF);
+    },
+    writeUint32: function (offset, value) {
+      this.writeByte(offset, (value >>> 24) & 0xFF);
+      this.writeByte(offset + 1, (value >> 16) & 0xFF);
+      this.writeByte(offset + 2, (value >> 8) & 0xFF);
+      this.writeByte(offset + 3, value & 0xFF);
+    },
+    refresh: function () {
+      render();
+      updateStatusBar();
+      updateModifiedState();
+      updateUndoRedoButtons();
+    },
+    goToOffset: function (offset) {
+      if (!romData) return;
+      cursorPos = Math.max(0, Math.min(offset, romData.length - 1));
+      selectionStart = -1;
+      selectionEnd = -1;
+      editingNibble = false;
+      ensureCursorVisible();
+      render();
+      updateStatusBar();
+    }
+  };
 })();
