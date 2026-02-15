@@ -845,8 +845,16 @@
     if (isShadowrunRom) {
       if (btn) btn.style.display = '';
       if (sep) sep.style.display = '';
-      buildPanel();
-      togglePanel(true);
+      try {
+        buildPanel();
+        togglePanel(true);
+      } catch (e) {
+        console.error('Shadowrun panel error:', e);
+        isShadowrunRom = false;
+        if (btn) btn.style.display = 'none';
+        if (sep) sep.style.display = 'none';
+        togglePanel(false);
+      }
     } else {
       if (btn) btn.style.display = 'none';
       if (sep) sep.style.display = 'none';
@@ -859,10 +867,14 @@
   // =========================================================================
   function onBeforeSave(data) {
     if (!isShadowrunRom) return;
-    var checksum = calculateChecksum(data);
-    // Write directly to data (not through RomEditor.writeByte to avoid undo entries for auto-fix)
-    data[CHECKSUM_OFFSET] = (checksum >> 8) & 0xFF;
-    data[CHECKSUM_OFFSET + 1] = checksum & 0xFF;
+    try {
+      var checksum = calculateChecksum(data);
+      // Write directly to data (not through RomEditor.writeByte to avoid undo entries for auto-fix)
+      data[CHECKSUM_OFFSET] = (checksum >> 8) & 0xFF;
+      data[CHECKSUM_OFFSET + 1] = checksum & 0xFF;
+    } catch (e) {
+      console.error('Shadowrun checksum error:', e);
+    }
   }
 
   // =========================================================================
