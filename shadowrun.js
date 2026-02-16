@@ -2,7 +2,7 @@
   'use strict';
 
   // =========================================================================
-  // SHADOWRUN GENESIS ROM EDITOR
+  // SHADOWRUN GENESIS ROM EDITOR — Overlay Reference UI
   // All addresses verified against Technical Reference v2
   // =========================================================================
 
@@ -171,25 +171,144 @@
     { name: 'Infinite Ammo',           addr: 0x00378E, original: 0xD328, patched: 0x5228 }
   ];
 
+  // --- RE Context Descriptions ---
+  var RE_CONTEXT = {
+    resources: {
+      title: 'Starting Resources',
+      icon: '\u00A5',
+      desc: 'The starting nuyen value is stored as a big-endian uint32 at 0x0007FE. ' +
+        'This is loaded into RAM when a new game begins and determines the player\'s initial funds. ' +
+        'The Sega Genesis uses 68000 big-endian byte ordering throughout.',
+      detail: 'Found by tracing the "new game" initialization routine. The value at this address is ' +
+        'copied directly into the player\'s nuyen RAM variable during character creation.'
+    },
+    characters: {
+      title: 'Character Templates',
+      icon: '\u2694',
+      desc: 'Each of the 3 playable classes (Samurai, Decker, Shaman) has a 256-byte template block ' +
+        'starting at 0x07291A with a stride of 0x100. These templates define the initial stats, ' +
+        'equipment, and skill levels when starting a new game.',
+      detail: 'The template structure was mapped by comparing RAM snapshots at game start with ROM contents. ' +
+        'Attributes sit at offsets 0x77\u20130x7C within each block; skills are at varying offsets identified through gameplay testing. ' +
+        'Some skill offsets (Armed Combat, Sorcery) have medium confidence \u2014 marked with tooltips.'
+    },
+    runners: {
+      title: 'Shadowrunners',
+      icon: '\u263A',
+      desc: 'Hireable NPCs share the same 256-byte template format as player classes, starting at ' +
+        '0x072C1A. There are 10 runners, each at a 0x100 stride. Their attribute and skill offsets match ' +
+        'the player template layout.',
+      detail: 'Runner templates were verified by hiring each NPC in-game and comparing their RAM stats to ROM values. ' +
+        'The consistent template structure across all 13 character blocks (3 classes + 10 runners) confirms the format.'
+    },
+    weapons: {
+      title: 'Weapons',
+      icon: '\u2620',
+      desc: 'Weapon data lives in a table starting around 0x0D4564. Each weapon record is spaced at 0x30 (48 bytes). ' +
+        'The clip size and damage values are adjacent uint8 fields within each record.',
+      detail: 'Located by searching for known clip sizes from the game manual, then confirming damage values ' +
+        'through combat testing. The 0x30 stride was determined by comparing field positions across adjacent weapons. ' +
+        'Prices are hardcoded elsewhere in shop display routines.'
+    },
+    spells: {
+      title: 'Spells',
+      icon: '\u2728',
+      desc: 'Spell data is stored in a table near 0x0D4EC4. Each spell record is spaced at 0x30 bytes. ' +
+        'Drain cost (byte N) and damage power (byte N+1) are adjacent within each record.',
+      detail: 'Identified by tracing the spell casting routine\'s damage calculation. The drain value at ' +
+        'offset+0 determines HP cost to the caster, while offset+1 is the base damage dealt. ' +
+        'Only combat spells have damage; utility spells (Sleep, Barrier) have drain only.'
+    },
+    consumables: {
+      title: 'Consumables',
+      icon: '\u2695',
+      desc: 'Consumable use counts are stored deep in ROM at 0x1AAD93 (Medkits) and 0x1AAD96 (Stim Patches). ' +
+        'These single-byte values define how many uses each consumable provides when acquired.',
+      detail: 'Found by setting a watchpoint on the item use counter decrement in RAM, then tracing back to ' +
+        'the initialization that loads the max count from ROM.'
+    },
+    cyberdeck: {
+      title: 'Cyberdeck',
+      icon: '\u2318',
+      desc: 'The starting cyberdeck stats at 0x14C1F6 define Memory (uint16), Storage (uint16), ' +
+        'Speed (uint8), and Response (uint8). These are loaded when the Decker class begins the game.',
+      detail: 'Located in the matrix initialization routine. Memory and Storage are 16-bit big-endian ' +
+        'values controlling program capacity and data storage. Speed and Response affect matrix combat timing.'
+    },
+    enemies: {
+      title: 'Enemies',
+      icon: '\u2622',
+      desc: 'The enemy table begins at 0x1D63CA with 33 entries, each 0x4A (74) bytes. ' +
+        'Enemy names are stored as null-terminated ASCII at the start of each record, with stat fields at ' +
+        'fixed offsets within the record.',
+      detail: 'Mapped by finding the first enemy name string ("lone11") in ROM and confirming the table structure ' +
+        'by checking adjacent entries match known enemy names. The 0x4A stride was verified across all 33 entries. ' +
+        'Stats at offsets 0x1E\u20130x24 mirror the player attribute layout; karma reward is at 0x2D.'
+    },
+    thon: {
+      title: 'Thon (Final Boss)',
+      icon: '\u2623',
+      desc: 'The final boss "Thon" has a standalone record at 0x1EDB0A, separate from the main enemy table. ' +
+        'Its stat layout matches the enemy table format, just stored in a different ROM region.',
+      detail: 'Thon\'s data is isolated because the boss fight uses a unique encounter handler. ' +
+        'The name string at 0x1EDB0A and stat block at 0x1EDB28 were located by tracing the final boss ' +
+        'battle initialization code.'
+    },
+    hacks: {
+      title: 'Game Hacks',
+      icon: '\u26A1',
+      desc: 'These are 68000 instruction patches that modify game behavior. Each hack replaces a 16-bit ' +
+        'instruction word at a specific address. The original and patched values are known, so hacks are fully reversible.',
+      detail: 'Patches were developed by disassembling the 68000 code at each location. For example, ' +
+        '"Infinite HP" replaces a SUB.B (0xD328) with NOP (0x4E71) in the damage handler; ' +
+        '"One-Hit Kill" changes a BGT (0x6E00) to BRA (0x6000) to always branch to the kill path. ' +
+        'Each patch is a single instruction replacement \u2014 no multi-byte code caves needed.'
+    },
+    checksum: {
+      title: 'Checksum',
+      icon: '\u2714',
+      desc: 'The Sega Genesis ROM checksum is a uint16 at 0x18E. It is computed by summing all uint16 ' +
+        'big-endian words from 0x200 to end-of-ROM, then masking to 16 bits.',
+      detail: 'This is a standard Sega Genesis header checksum. The BIOS optionally verifies it on boot. ' +
+        'After any ROM modification, the checksum should be recalculated to avoid boot failures on hardware ' +
+        'or strict emulators.'
+    }
+  };
+
+  // --- Category definitions for navigation ---
+  var CATEGORIES = [
+    { id: 'resources',  label: 'Resources',  builder: buildStartingResources, ctx: RE_CONTEXT.resources },
+    { id: 'characters', label: 'Characters', builder: buildCharacterTemplates, ctx: RE_CONTEXT.characters },
+    { id: 'runners',    label: 'Runners',    builder: buildShadowrunners,     ctx: RE_CONTEXT.runners },
+    { id: 'weapons',    label: 'Weapons',    builder: buildWeapons,           ctx: RE_CONTEXT.weapons },
+    { id: 'spells',     label: 'Spells',     builder: buildSpells,            ctx: RE_CONTEXT.spells },
+    { id: 'consumables',label: 'Consumables',builder: buildConsumables,       ctx: RE_CONTEXT.consumables },
+    { id: 'cyberdeck',  label: 'Cyberdeck',  builder: buildCyberdeck,         ctx: RE_CONTEXT.cyberdeck },
+    { id: 'enemies',    label: 'Enemies',    builder: buildEnemies,           ctx: RE_CONTEXT.enemies },
+    { id: 'thon',       label: 'Thon',       builder: buildThon,              ctx: RE_CONTEXT.thon },
+    { id: 'hacks',      label: 'Hacks',      builder: buildHacks,             ctx: RE_CONTEXT.hacks },
+    { id: 'checksum',   label: 'Checksum',   builder: buildChecksum,          ctx: RE_CONTEXT.checksum }
+  ];
+
   // =========================================================================
   // STATE
   // =========================================================================
   var isShadowrunRom = false;
-  var panelVisible = false;
-  var sectionRefreshers = [];
+  var overlayVisible = false;
+  var activeCategory = 'resources';
+  var categoryRefreshers = {};
+  var navButtons = {};
 
   // =========================================================================
   // ROM DETECTION
   // =========================================================================
   function detectShadowrunRom(data) {
     if (!data || data.length !== EXPECTED_ROM_SIZE) return false;
-    // Check SEGA header at 0x100
     var header = '';
     for (var i = 0; i < 4; i++) {
       header += String.fromCharCode(data[SEGA_HEADER_OFFSET + i]);
     }
     if (header !== SEGA_HEADER_TEXT) return false;
-    // Check title magic at 0x124
     var magic = ((data[TITLE_MAGIC_OFFSET] << 24) |
                  (data[TITLE_MAGIC_OFFSET + 1] << 16) |
                  (data[TITLE_MAGIC_OFFSET + 2] << 8) |
@@ -209,28 +328,12 @@
   }
 
   // =========================================================================
-  // HELPER: Format address string
+  // HELPERS
   // =========================================================================
   function fmtAddr(addr) {
     return '0x' + addr.toString(16).toUpperCase().padStart(6, '0');
   }
 
-  // =========================================================================
-  // HELPER: Read ASCII from ROM
-  // =========================================================================
-  function readAscii(data, start, end) {
-    var str = '';
-    for (var i = start; i <= end; i++) {
-      var b = data[i];
-      if (b === 0xFF || b === 0x00) break;
-      if (b >= 32 && b <= 126) str += String.fromCharCode(b);
-    }
-    return str.trim();
-  }
-
-  // =========================================================================
-  // DOM HELPERS
-  // =========================================================================
   function el(tag, cls, text) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -250,8 +353,6 @@
   // =========================================================================
   // FIELD CREATION HELPERS
   // =========================================================================
-
-  // Creates a uint8 field row and returns { row, input, refresh }
   function createUint8Field(container, label, addr, note) {
     var row = el('div', 'sr-field');
     var lbl = el('label', null, label);
@@ -363,7 +464,6 @@
     checkbox.type = 'checkbox';
     var slider = el('span', 'sr-toggle-slider');
 
-    // Read current state
     var current = RomEditor.readUint16(hack.addr);
     checkbox.checked = (current === hack.patched);
 
@@ -377,11 +477,15 @@
     toggle.appendChild(slider);
 
     var nameSpan = el('span', 'sr-hack-name', hack.name);
+    var detailSpan = el('span', 'sr-hack-detail',
+      fmtAddr(hack.addr) + ': ' +
+      hack.original.toString(16).toUpperCase().padStart(4, '0') + ' \u2192 ' +
+      hack.patched.toString(16).toUpperCase().padStart(4, '0'));
 
     label.appendChild(toggle);
     label.appendChild(nameSpan);
     row.appendChild(label);
-    row.appendChild(addrLink(hack.addr));
+    row.appendChild(detailSpan);
     container.appendChild(row);
 
     return {
@@ -394,46 +498,11 @@
   }
 
   // =========================================================================
-  // SECTION: Collapsible accordion section
+  // CATEGORY CONTENT BUILDERS
   // =========================================================================
-  function createSection(title, contentBuilder) {
-    var section = el('div', 'sr-section');
-    var header = el('div', 'sr-section-header');
-    var arrow = el('span', 'sr-arrow', '\u25B6');
-    var titleSpan = el('span', null, title);
-    header.appendChild(arrow);
-    header.appendChild(titleSpan);
-    section.appendChild(header);
-
-    var body = el('div', 'sr-section-body');
-    body.style.display = 'none';
-    section.appendChild(body);
-
-    var refreshFn = contentBuilder(body);
-
-    header.addEventListener('click', function () {
-      var open = body.style.display !== 'none';
-      body.style.display = open ? 'none' : 'block';
-      arrow.textContent = open ? '\u25B6' : '\u25BC';
-      if (!open && refreshFn) refreshFn();
-    });
-
-    return { element: section, refresh: refreshFn };
-  }
-
-  // =========================================================================
-  // SECTION BUILDERS
-  // =========================================================================
-
   function buildStartingResources(body) {
-    var heading = el('div', 'sr-section-desc', 'Global starting values');
-    body.appendChild(heading);
-
     var nuyenField = createUint32Field(body, 'Nuyen', NUYEN_ADDR);
-
-    return function () {
-      nuyenField.refresh();
-    };
+    return function () { nuyenField.refresh(); };
   }
 
   function buildCharacterTemplates(body) {
@@ -450,7 +519,6 @@
 
     var fieldRefs = [];
 
-    // Build fields for template
     var subhead1 = el('div', 'sr-subhead', 'Resources');
     fields.appendChild(subhead1);
     fieldRefs.push({ field: createUint8Field(fields, 'Clips', 0), offsetVal: TEMPLATE.clips });
@@ -475,7 +543,6 @@
         var addr = base + ref.offsetVal;
         ref.field.setAddr(addr);
         ref.field.refresh(addr);
-        // Update address link
         var addrEl = ref.field.row.querySelector('.sr-addr');
         if (addrEl) {
           addrEl.textContent = fmtAddr(addr);
@@ -487,7 +554,6 @@
 
     select.addEventListener('change', refresh);
     refresh();
-
     return refresh;
   }
 
@@ -535,7 +601,6 @@
 
     select.addEventListener('change', refresh);
     refresh();
-
     return refresh;
   }
 
@@ -561,7 +626,6 @@
       clipField.refresh(wpn.clipAddr);
       dmgField.setAddr(wpn.dmgAddr);
       dmgField.refresh(wpn.dmgAddr);
-      // Update addr links
       var addrs = fields.querySelectorAll('.sr-addr');
       if (addrs[0]) {
         addrs[0].textContent = fmtAddr(wpn.clipAddr);
@@ -577,7 +641,6 @@
 
     select.addEventListener('change', refresh);
     refresh();
-
     return refresh;
   }
 
@@ -616,9 +679,6 @@
   }
 
   function buildCyberdeck(body) {
-    var desc = el('div', 'sr-section-desc', 'Starting cyberdeck stats');
-    body.appendChild(desc);
-
     var fields = [];
     CYBERDECK.forEach(function (stat) {
       if (stat.size === 2) {
@@ -668,14 +728,10 @@
 
     select.addEventListener('change', refresh);
     refresh();
-
     return refresh;
   }
 
   function buildThon(body) {
-    var desc = el('div', 'sr-section-desc', 'Final boss — separate from enemy table');
-    body.appendChild(desc);
-
     var fields = [];
     THON_FIELDS.forEach(function (stat) {
       fields.push(createUint8Field(body, stat.name, stat.addr));
@@ -687,9 +743,6 @@
   }
 
   function buildHacks(body) {
-    var desc = el('div', 'sr-section-desc', 'Toggle verified 68000 patches');
-    body.appendChild(desc);
-
     var hackRefs = [];
     HACKS.forEach(function (hack) {
       hackRefs.push(createHackToggle(body, hack));
@@ -701,12 +754,8 @@
   }
 
   function buildChecksum(body) {
-    var desc = el('div', 'sr-section-desc',
-      'ROM checksum at 0x18E. Sum of uint16 values from 0x200 to end.');
-    body.appendChild(desc);
-
     var row = el('div', 'sr-field');
-    var lbl = el('label', null, 'Current');
+    var lbl = el('label', null, 'Stored');
     var valSpan = el('span', 'sr-checksum-val', '----');
     row.appendChild(lbl);
     row.appendChild(valSpan);
@@ -747,7 +796,7 @@
         statusRow.textContent = 'Checksum valid';
         statusRow.className = 'sr-checksum-status sr-valid';
       } else {
-        statusRow.textContent = 'Checksum mismatch — click Recalculate to fix';
+        statusRow.textContent = 'Mismatch \u2014 click Recalculate to fix';
         statusRow.className = 'sr-checksum-status sr-invalid';
       }
     }
@@ -756,81 +805,156 @@
   }
 
   // =========================================================================
-  // PANEL CONSTRUCTION
+  // OVERLAY CONSTRUCTION
   // =========================================================================
-  function buildPanel() {
+  function buildOverlay() {
     var panel = document.getElementById('shadowrunPanel');
     if (!panel) return;
     panel.innerHTML = '';
-    sectionRefreshers = [];
+    categoryRefreshers = {};
+    navButtons = {};
 
-    // Header
-    var header = el('div', 'sr-panel-header');
-    var title = el('div', 'sr-panel-title', 'Shadowrun Genesis');
-    var closeBtn = el('button', 'sr-close-btn', '\u00D7');
-    closeBtn.title = 'Close panel';
-    closeBtn.addEventListener('click', function () { togglePanel(false); });
-    var refreshBtn = el('button', 'sr-refresh-btn', '\u21BB');
+    // -- Header bar --
+    var header = el('div', 'sr-overlay-header');
+    var titleArea = el('div', 'sr-overlay-title-area');
+    var title = el('div', 'sr-overlay-title', 'Shadowrun Genesis');
+    var subtitle = el('div', 'sr-overlay-subtitle', 'ROM Reference & Editor');
+    titleArea.appendChild(title);
+    titleArea.appendChild(subtitle);
+    header.appendChild(titleArea);
+
+    var headerBtns = el('div', 'sr-overlay-header-btns');
+    var refreshBtn = el('button', 'sr-header-btn', '\u21BB');
     refreshBtn.title = 'Refresh all values from ROM';
-    refreshBtn.addEventListener('click', refreshAll);
-    header.appendChild(title);
-    header.appendChild(refreshBtn);
-    header.appendChild(closeBtn);
+    refreshBtn.addEventListener('click', refreshActiveCategory);
+    var closeBtn = el('button', 'sr-header-btn sr-close-btn', '\u00D7');
+    closeBtn.title = 'Close overlay';
+    closeBtn.addEventListener('click', function () { toggleOverlay(false); });
+    headerBtns.appendChild(refreshBtn);
+    headerBtns.appendChild(closeBtn);
+    header.appendChild(headerBtns);
     panel.appendChild(header);
 
-    // Content
-    var content = el('div', 'sr-panel-content');
+    // -- Body: nav + content --
+    var body = el('div', 'sr-overlay-body');
 
-    var sections = [
-      createSection('Starting Resources', buildStartingResources),
-      createSection('Character Templates', buildCharacterTemplates),
-      createSection('Shadowrunners', buildShadowrunners),
-      createSection('Weapons', buildWeapons),
-      createSection('Spells', buildSpells),
-      createSection('Consumables', buildConsumables),
-      createSection('Cyberdeck', buildCyberdeck),
-      createSection('Enemies', buildEnemies),
-      createSection('Thon (Final Boss)', buildThon),
-      createSection('Game Hacks', buildHacks),
-      createSection('Checksum', buildChecksum)
-    ];
+    // Nav sidebar
+    var nav = el('nav', 'sr-nav');
+    CATEGORIES.forEach(function (cat) {
+      var btn = el('button', 'sr-nav-btn');
+      var icon = el('span', 'sr-nav-icon', cat.ctx.icon);
+      var label = el('span', 'sr-nav-label', cat.label);
+      btn.appendChild(icon);
+      btn.appendChild(label);
+      btn.addEventListener('click', function () { switchCategory(cat.id); });
+      nav.appendChild(btn);
+      navButtons[cat.id] = btn;
+    });
+    body.appendChild(nav);
 
-    sections.forEach(function (s) {
-      content.appendChild(s.element);
-      sectionRefreshers.push(s.refresh);
+    // Content area
+    var contentArea = el('div', 'sr-content-area');
+
+    // Build all category panels (hidden by default)
+    CATEGORIES.forEach(function (cat) {
+      var catPanel = el('div', 'sr-cat-panel');
+      catPanel.id = 'sr-cat-' + cat.id;
+      catPanel.style.display = 'none';
+
+      // RE context box
+      var ctxBox = el('div', 'sr-context-box');
+      var ctxHeader = el('div', 'sr-context-header');
+      var ctxToggle = el('button', 'sr-context-toggle', 'RE Notes \u25BC');
+      ctxHeader.appendChild(el('div', 'sr-context-title', cat.ctx.title));
+      ctxHeader.appendChild(ctxToggle);
+      ctxBox.appendChild(ctxHeader);
+
+      var ctxDesc = el('div', 'sr-context-desc', cat.ctx.desc);
+      ctxBox.appendChild(ctxDesc);
+
+      var ctxDetail = el('div', 'sr-context-detail');
+      ctxDetail.style.display = 'none';
+      var ctxDetailLabel = el('div', 'sr-context-detail-label', 'How this was found:');
+      var ctxDetailText = el('div', 'sr-context-detail-text', cat.ctx.detail);
+      ctxDetail.appendChild(ctxDetailLabel);
+      ctxDetail.appendChild(ctxDetailText);
+      ctxBox.appendChild(ctxDetail);
+
+      ctxToggle.addEventListener('click', function () {
+        var showing = ctxDetail.style.display !== 'none';
+        ctxDetail.style.display = showing ? 'none' : 'block';
+        ctxToggle.textContent = showing ? 'RE Notes \u25BC' : 'RE Notes \u25B2';
+      });
+
+      catPanel.appendChild(ctxBox);
+
+      // Editor fields
+      var fieldsContainer = el('div', 'sr-cat-fields');
+      var refreshFn = cat.builder(fieldsContainer);
+      categoryRefreshers[cat.id] = refreshFn;
+      catPanel.appendChild(fieldsContainer);
+
+      contentArea.appendChild(catPanel);
     });
 
-    panel.appendChild(content);
+    body.appendChild(contentArea);
+    panel.appendChild(body);
+
+    // Activate default category
+    switchCategory(activeCategory);
   }
 
-  function refreshAll() {
-    sectionRefreshers.forEach(function (fn) {
-      if (fn) fn();
+  function switchCategory(catId) {
+    activeCategory = catId;
+
+    // Update nav buttons
+    Object.keys(navButtons).forEach(function (id) {
+      if (id === catId) {
+        navButtons[id].classList.add('sr-nav-active');
+      } else {
+        navButtons[id].classList.remove('sr-nav-active');
+      }
     });
+
+    // Show/hide panels
+    CATEGORIES.forEach(function (cat) {
+      var panel = document.getElementById('sr-cat-' + cat.id);
+      if (panel) {
+        panel.style.display = cat.id === catId ? 'block' : 'none';
+      }
+    });
+
+    // Refresh active category
+    refreshActiveCategory();
+  }
+
+  function refreshActiveCategory() {
+    var fn = categoryRefreshers[activeCategory];
+    if (fn) fn();
   }
 
   // =========================================================================
-  // PANEL TOGGLE
+  // OVERLAY TOGGLE
   // =========================================================================
-  function togglePanel(show) {
+  function toggleOverlay(show) {
     var panel = document.getElementById('shadowrunPanel');
     var btn = document.getElementById('srToggleBtn');
+    var backdrop = document.getElementById('srBackdrop');
     if (!panel) return;
 
-    if (show === undefined) show = !panelVisible;
-    panelVisible = show;
+    if (show === undefined) show = !overlayVisible;
+    overlayVisible = show;
 
     if (show) {
       panel.classList.remove('hidden');
+      if (backdrop) backdrop.classList.remove('hidden');
       if (btn) btn.classList.add('sr-btn-active');
-      refreshAll();
+      refreshActiveCategory();
     } else {
       panel.classList.add('hidden');
+      if (backdrop) backdrop.classList.add('hidden');
       if (btn) btn.classList.remove('sr-btn-active');
     }
-
-    // Trigger resize so hex editor recalculates visible rows
-    window.dispatchEvent(new Event('resize'));
   }
 
   // =========================================================================
@@ -846,30 +970,29 @@
       if (btn) btn.style.display = '';
       if (sep) sep.style.display = '';
       try {
-        buildPanel();
-        togglePanel(true);
+        buildOverlay();
+        toggleOverlay(true);
       } catch (e) {
-        console.error('Shadowrun panel error:', e);
+        console.error('Shadowrun overlay error:', e);
         isShadowrunRom = false;
         if (btn) btn.style.display = 'none';
         if (sep) sep.style.display = 'none';
-        togglePanel(false);
+        toggleOverlay(false);
       }
     } else {
       if (btn) btn.style.display = 'none';
       if (sep) sep.style.display = 'none';
-      togglePanel(false);
+      toggleOverlay(false);
     }
   }
 
   // =========================================================================
-  // BEFORE SAVE HANDLER — auto-recalculate checksum
+  // BEFORE SAVE — auto-recalculate checksum
   // =========================================================================
   function onBeforeSave(data) {
     if (!isShadowrunRom) return;
     try {
       var checksum = calculateChecksum(data);
-      // Write directly to data (not through RomEditor.writeByte to avoid undo entries for auto-fix)
       data[CHECKSUM_OFFSET] = (checksum >> 8) & 0xFF;
       data[CHECKSUM_OFFSET + 1] = checksum & 0xFF;
     } catch (e) {
@@ -881,20 +1004,30 @@
   // INITIALIZATION
   // =========================================================================
   function init() {
-    // Wire up toggle button
     var btn = document.getElementById('srToggleBtn');
     if (btn) {
-      btn.addEventListener('click', function () { togglePanel(); });
+      btn.addEventListener('click', function () { toggleOverlay(); });
     }
 
-    // Register with main editor
+    // Click backdrop to close
+    var backdrop = document.getElementById('srBackdrop');
+    if (backdrop) {
+      backdrop.addEventListener('click', function () { toggleOverlay(false); });
+    }
+
+    // Escape key to close
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && overlayVisible) {
+        toggleOverlay(false);
+      }
+    });
+
     if (window.RomEditor) {
       RomEditor.onFileLoaded(onFileLoaded);
       RomEditor.onBeforeSave(onBeforeSave);
     }
   }
 
-  // Run init when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
