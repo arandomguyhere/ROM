@@ -509,9 +509,10 @@
   }
 
   function setCursor(pos, shift) {
+    var prevPos = cursorPos;
     cursorPos = pos;
     if (shift) {
-      if (selectionStart < 0) selectionStart = cursorPos;
+      if (selectionStart < 0) selectionStart = prevPos;
       selectionEnd = cursorPos;
     } else {
       selectionStart = -1;
@@ -638,6 +639,7 @@
   // --- Go to offset ---
   function showGotoDialog() {
     gotoDialog.classList.remove('hidden');
+    gotoInput.style.borderColor = '';
     gotoInput.value = cursorPos.toString(16).toUpperCase();
     gotoInput.focus();
     gotoInput.select();

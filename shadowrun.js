@@ -143,7 +143,6 @@
   ];
 
   // --- Thon (Final Boss) ---
-  var THON_NAME_ADDR = 0x1EDB0A;
   var THON_FIELDS = [
     { name: 'Equip Tier',   addr: 0x1EDB28 },
     { name: 'Body',         addr: 0x1EDB29 },
@@ -344,9 +343,9 @@
   function addrLink(addr) {
     var span = el('span', 'sr-addr', fmtAddr(addr));
     span.title = 'Go to offset ' + fmtAddr(addr);
-    span.addEventListener('click', function () {
+    span.onclick = function () {
       RomEditor.goToOffset(addr);
-    });
+    };
     return span;
   }
 
