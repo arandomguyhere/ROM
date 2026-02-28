@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ["master", "claude/rom-editor-github-pages-A0IQW"]
+    branches: ["master"]
   workflow_dispatch:
 
 permissions:
